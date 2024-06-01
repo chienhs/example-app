@@ -68,6 +68,71 @@ class aaaa extends Controller
                  array_push($mang_dinh_danh_ngay_vs_cot, $pair);
              }
          }
+          // xong header
+        $startRow =
+        $startRow + 2;
+    //main
+     // Nhóm theo san pham
+     $groupedByItemNam = collect($dataTable)->groupBy('item_name');
+    //  dd($groupedByItemNam);
+     $finalGrouped = $groupedByItemNam->map(function ($items) {
+
+        $groupedByProductId = $items->groupBy('date')->map(function ($products) {
+
+
+            $dataMerge = array_merge($products[0], [
+                //    'item_id' => $products->first()['item_id'],
+                'quantity' => $products->sum('quantity'),
+            ]);
+            return $dataMerge;
+        })->values()->sortBy('date'); // .sortBy() để sắp xếp theo product_id
+
+        // Tính tổng qty cho mỗi ngày
+        $totalQty = $groupedByProductId->sum('quantity');
+        $totalQty = $groupedByProductId->sum('quantity');
+
+        return [
+            'date' => $groupedByProductId,
+            'total_qty' => $totalQty,
+            'extraItem' => [
+                'item_name' => $groupedByProductId->first()['item_name'],
+                'item_code' => $groupedByProductId->first()['item_code'],
+                'unit_name' => $groupedByProductId->first()['unit_name'],
+            ],
+        ];
+    });
+    // dd($finalGrouped);
+     // dua vao file excel
+     $chi_muc = 1;
+     foreach ($finalGrouped as $key => $each_product) {
+
+
+        $activeWorksheet->setCellValue("A{$startRow}", $chi_muc);
+        $activeWorksheet->setCellValue("B{$startRow}", $key);
+        $activeWorksheet->setCellValue("C{$startRow}", $each_product['extraItem']['item_code']);
+        $activeWorksheet->setCellValue("D{$startRow}", $each_product['extraItem']['unit_name']);
+        for ($i = 0; $i < count($mang_dinh_danh_ngay_vs_cot); $i++) {
+            $found = false;
+            $column = chr(65 + $i + 4);
+            foreach ($each_product['date'] as $key => $product) {
+                if ($product['date'] == $mang_dinh_danh_ngay_vs_cot[$i]) {
+                    $activeWorksheet->setCellValue($column . $startRow, $product['quantity']);
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                $activeWorksheet->setCellValue($column . $startRow, 0);;
+            }
+        }
+        // chen du lieu tong
+        $columnTong = chr(65 + 3 + count($mang_dinh_danh_ngay_vs_cot));
+        // dd($columnTong);
+        $activeWorksheet->setCellValue("{$columnTong}{$startRow}", $each_product['total_qty']);
+
+        ++$startRow;
+        ++$chi_muc;
+    }
          $outputPath = 'bao-cao-ty-le-dap-ung.xlsx';
          $writer = new Xlsx($spreadsheet);
          $writer->save($outputPath);
