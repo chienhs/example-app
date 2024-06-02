@@ -265,7 +265,7 @@
         "total": 0,
         "include_vat": true,
         "vat": 10,
-        "total_vat": 0,
+        "total_vat": 2000,
         "total_after_vat": 0,
         "disabled_selected": false
     },
